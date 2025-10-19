@@ -1,25 +1,3 @@
-const crypto = require('crypto');
-
-// AES key and IV (replace with secure values)
-const AES_KEY = process.env.AES_KEY || 'your-32-byte-secret-key-here-1234'; // 32 bytes
-const AES_IV = process.env.AES_IV || 'your-16-byte-iv-here'; // 16 bytes
-
-// AES encrypt
-function encrypt(text) {
-  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(AES_KEY), Buffer.from(AES_IV));
-  let encrypted = cipher.update(text, 'utf8', 'base64');
-  encrypted += cipher.final('base64');
-  return encrypted;
-}
-
-// AES decrypt
-function decrypt(encrypted) {
-  const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(AES_KEY), Buffer.from(AES_IV));
-  let decrypted = decipher.update(encrypted, 'base64', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
-}
-
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST');
@@ -31,16 +9,16 @@ module.exports = async (req, res) => {
 
   try {
     const body = req.body;
-    if (!body || !body.encryptedPayload) {
-      return res.status(400).json({ error: 'Missing encryptedPayload' });
+    if (!body || !body.encodedPayload) {
+      return res.status(400).json({ error: 'Missing encodedPayload' });
     }
 
-    // Decrypt payload
+    // Decode base64 payload
     let payload;
     try {
-      payload = JSON.parse(decrypt(body.encryptedPayload));
+      payload = JSON.parse(Buffer.from(body.encodedPayload, 'base64').toString('utf8'));
     } catch (e) {
-      return res.status(400).json({ error: 'Invalid encrypted payload' });
+      return res.status(400).json({ error: 'Invalid encoded payload' });
     }
 
     // Verify action
@@ -48,13 +26,13 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Invalid action' });
     }
 
-    // Read scripts/EXAMPLE.lua from GitHub (in production, use GitHub API or local file)
+    // Hardcoded script content (replace with GitHub fetch for production)
     const scriptContent = `print("PROTECTED SCRIPT LOADED!")\nprint("User:", game.Players.LocalPlayer.Name)`;
 
-    // Encrypt response
-    const encryptedResponse = encrypt(scriptContent);
+    // Encode response in base64
+    const encodedResponse = Buffer.from(scriptContent).toString('base64');
 
-    res.status(200).json({ encryptedResponse });
+    res.status(200).json({ encodedResponse });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });
