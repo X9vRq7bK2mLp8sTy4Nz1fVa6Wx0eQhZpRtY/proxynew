@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/relay",
-      "destination": "/index.html"
+      "destination": "/api/relay.js"
     }
   ]
 }
