@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+function genEp(s, i) {
+  let e = '', t = s + i * 7919;
+  for (let j = 0; j < 8; j++) {
+    t = (t * 16807) % 2147483647;
+    e += chars[t % 36];
+  }
+  return e;
+}
+const seed = Math.floor((Date.now() / 1000 - 1704067200) / 3600);
+const validKey = genEp(seed, 0); // First key for simplicity
+const payload = `-- Your protected script here\nprint("PROTECTED SCRIPT LOADED!")\nprint("User:", game.Players.LocalPlayer.Name)`;
+
+// Handle POST request
+async function handleRequest() {
+  let body;
+  try {
+    body = await new Promise(resolve => {
+      let data = '';
+      process.stdin.on('data', chunk => data += chunk);
+      process.stdin.on('end', () => resolve(JSON.parse(data)));
+    });
+  } catch (e) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) };
+  }
+
+  const reqKey = body.e;
+  if (reqKey === validKey) {
+    const encodedPayload = btoa(payload);
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ result: `FINAL||${'A'.repeat(64)}||PAYLOAD||${encodedPayload}||END` })
+    };
+  } else {
+    return { statusCode: 404, body: JSON.stringify({ error: 'Invalid key' }) };
+  }
+}
+
+// Vercel serverless function wrapper
+module.exports = async (req, res) => {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Only POST allowed' });
+    return;
+  }
+  const response = await handleRequest();
+  res.status(response.statusCode).json(JSON.parse(response.body));
+};
+</script>
+</body>
+</html>
